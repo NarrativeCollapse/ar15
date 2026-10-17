@@ -1,163 +1,64 @@
-
 ;
-; This program mills the "Passenger's Side Plate", which is a fixture for
-; milling an AR-15 receiver from a 0% casting.
+; passenger-side-plate.ngc - mill the passenger's side fixture plate.
 ;
+; Copyright (C) 2026 narrativecollapse.  Free software under the WTFPL,
+; version 2, with no warranty: see LICENSE.
 ;
-; It is based on the information in chapter 14 of "Machining the AR15 Lower
-; Receiver Forging" by Ray Brandes, available from from Ray-Vin.com.
+; The plate is described in chapter 14 of "Machining the AR15 Lower
+; Receiver Forging" by Ray Brandes.  Run passenger-side-chamfer.ngc on it
+; afterwards, once its 10 degree edge is cut (plate-angle.ngc).
 ;
-; The work piece is a 6.000" x 2.500" x 0.500" Al plate, with the XY origin
-; at the top right corner and the Z origin at the upper surface of the
-; plate.  The workpiece thus extends to X=-6.000, Y=-2.500, and Z=-0.500.
+; Stock: 6.000 x 2.500 x 0.500 aluminium, faced (facemill-plate.ngc), in
+; the vise with at least 0.313 above the jaws.
 ;
-; The work piece is mounted in a vise with at least 0.313" sticking up
-; above the jaws.
+; Datums: X0 Y0 at the plate's top right corner, so it runs to X-6.000
+; Y-2.500.  Z0 on its top surface.
 ;
-
-
-;
-; control parameters
-;
-
-#<CutterDiameter> = [ 3/8 ]
-#<CutterRadius> = [ #<CutterDiameter> / 2 ]
-
-#<FinishAllowance> = 0.010
-#<MaxDOC> = #<CutterRadius>
-
-; FIXME: gotta figure out speeds & feeds!
-#<Feed> = 5
-
-#<SafeZ> = .1
-
-
-g20 (inch)
-g90 (absolute)
-g40 (disable cutter comp)
-g90.1 (arc centers are absolute)
-
-
-
-
-; fetch the 3/8 end mill
-m6 t3 g43
-
-; ask the user to set speed
-; FIXME: it'd be cool to have a manual speed changer, analogous to the
-; manual tool changer
-m3 s2000
-(MSG, Set spindle speed to 2000 rpm)
-m1
-
-f#<Feed>
-
-g0 z#<SafeZ>
-
-
-
-
-; 
-; start with the large thinned area of the plate
-; Do this "pocket" without a finish allowance, and "manually" finish just
-; the one side of the pocket that needs it.
+; The high part of the plate is X-2.750 to X0; the thinned area is the
+; rest.  The three slots are cut in an order that lets each one plunge
+; where an earlier one has already cleared.
 ;
 
-o100 if [1]
 
-    #<StartX> = -6.000
-    #<StartY> = [0 + #<CutterDiameter>]
+; -- settings ---------------------------------------------------------
 
-    #<EndX> = [ -2.750 - #<CutterRadius> - #<FinishAllowance> ]
-    #<EndY> = [-2.500 - #<CutterDiameter>]
+#<clear_z> = 0.100
 
-    #<PocketZ> = -0.106
+#<tool> = 3             ; 0.375 end mill
+#<tool_dia> = 0.375
+#<rpm> = 2000
+#<feed> = 5
 
-    o<rectangular-pocket-0> call [#<StartX>] [#<StartY>] [#<EndX>] [#<EndY>] [#<PocketZ>] [#<SafeZ>] [#<MaxDOC>] [0]
+#<stepover> = [#<tool_dia> / 2]
+#<step_down> = [#<tool_dia> / 2]
+#<finish> = 0.010
 
-
-    ; finish just the right wall of the pocket with climb milling
-    g0 z#<SafeZ>
-    g0 x[-2.750 - #<CutterRadius>] y[ -2.500 - #<CutterDiameter> ]
-    g1 z#<PocketZ>
-    g1 y#<CutterDiameter>
-    g0 z#<SafeZ>
-
-o100 endif
+#<thin_z> = -0.106
+#<slot_z> = -0.313
 
 
+; -- program ----------------------------------------------------------
 
+o<ar15-start> call [#<clear_z>]
+o<ar15-tool> call [#<tool>] [#<rpm>] [#<feed>] [#<tool_dia>]
 
-;
-; cut the top horizontal pocket
-;
+; The thinned area: the left end to X-2.750, the whole width.  It plunges
+; off the top edge; the finishing pass climb-mills the X-2.750 wall.
+o<ar15-pocket> call [-6.000 - #<tool_dia> / 2] [#<tool_dia> * 1.5] [-2.750] [-2.500 - #<tool_dia> * 1.5] [0] [#<thin_z>] [#<tool_dia>] [#<stepover>] [#<step_down>] [#<finish>]
 
-o200 if [1]
+; The top slot: along the top edge from the left end to X-2.500, 0.500
+; deep (Y), so it runs 0.250 into the high part.  It plunges off the top
+; edge.
+o<ar15-pocket> call [-6.000 - #<tool_dia> / 2] [#<tool_dia> + 0.010] [-2.500] [-0.500] [0] [#<slot_z>] [#<tool_dia>] [#<stepover>] [#<step_down>] [#<finish>]
 
-    #<StartX> = -6.000
+; The upright slot: X-3.875 to X-3.375, from the top edge down to
+; Y-1.750.  It plunges inside the top slot.
+o<ar15-pocket> call [-3.875] [0] [-3.375] [-1.750] [#<thin_z>] [#<slot_z>] [#<tool_dia>] [#<stepover>] [#<step_down>] [#<finish>]
 
-    ; the .010 extra on StartY is just to get the cutter's contact patch
-    ; with the right side of the pocket definitely off the top of the work
-    #<StartY> = [ 0.000 + 0.010 ]
+; The lower slot: Y-1.000 to Y-1.500, from the upright slot to X-2.500,
+; so it too runs 0.250 into the high part.  Its start wall is a cutter
+; diameter inside the upright slot, so it plunges there.
+o<ar15-pocket> call [-3.375 - #<tool_dia> - 0.010] [-1.000] [-2.500] [-1.500] [0] [#<slot_z>] [#<tool_dia>] [#<stepover>] [#<step_down>] [#<finish>]
 
-    #<EndX> = [ -2.750 + .250 - #<CutterRadius> ]
-    #<EndY> = [ -0.500 + #<CutterRadius> ]
-
-    #<PocketZ> = -0.313
-
-    o<rectangular-pocket-0> call [#<StartX>] [#<StartY>] [#<EndX>] [#<EndY>] [#<PocketZ>] [#<SafeZ>] [#<MaxDOC>] [#<FinishAllowance>]
-
-o200 endif
-
-
-
-
-;
-; cut the vertical pocket
-;
-
-o300 if [1]
-
-    #<StartX> = [ -3.875 + #<CutterRadius> ]
-    #<StartY> = 0
-
-    #<EndX> = [ -3.375 - #<CutterRadius> ]
-    #<EndY> = [ -1.500 - 0.250 + #<CutterRadius> ]
-
-    #<PocketZ> = -0.313
-
-    o<rectangular-pocket-0> call [#<StartX>] [#<StartY>] [#<EndX>] [#<EndY>] [#<PocketZ>] [#<SafeZ>] [#<MaxDOC>] [#<FinishAllowance>]
-
-o300 endif
-
-
-
-
-;
-; cut the lower horizontal pocket
-;
-
-o400 if [1]
-
-    #<StartX> = [ -3.375 - #<CutterRadius> - 0.010 ]
-    #<StartY> = [ -1.000 - #<CutterRadius> ]
-
-    #<EndX> = [ -2.750 + 0.250 - #<CutterRadius> ]
-    #<EndY> = [ -1.500 + #<CutterRadius> ]
-
-    #<PocketZ> = -0.313
-
-    o<rectangular-pocket-0> call [#<StartX>] [#<StartY>] [#<EndX>] [#<EndY>] [#<PocketZ>] [#<SafeZ>] [#<MaxDOC>] [#<FinishAllowance>]
-
-o400 endif
-
-
-
-
-; 
-; done!
-;
-
-o<presentation-position-0> call
+o<ar15-end> call
 m2
-

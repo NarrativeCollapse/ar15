@@ -1,0 +1,21 @@
+;
+; ar15-goto: rapid to an X Y position without hitting anything.
+;
+;     o<ar15-goto> call [x] [y]
+;
+; Goes to the clear Z first, then moves in X and Y.  The clear Z is above
+; everything on the table, so that first move is safe wherever the tool
+; is: up from inside a pocket, or down from the top of travel after a
+; tool change.  This is the only way the other subroutines move between
+; features.
+;
+; Copyright (C) 2026 narrativecollapse.  Free software under the WTFPL,
+; version 2, with no warranty: see LICENSE.
+;
+
+o<ar15-goto> sub
+
+    g0 z#<_ar15_clear_z>
+    g0 x#1 y#2
+
+o<ar15-goto> endsub

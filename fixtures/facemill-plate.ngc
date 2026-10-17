@@ -1,0 +1,44 @@
+;
+; facemill-plate.ngc - face one side of a fixture plate blank.
+;
+; Copyright (C) 2026 narrativecollapse.  Free software under the WTFPL,
+; version 2, with no warranty: see LICENSE.
+;
+; The blank is a 6.000 x 2.500 x 0.500 aluminium plate for one of the
+; fixture plates in chapter 14 of "Machining the AR15 Lower Receiver
+; Forging" by Ray Brandes.
+;
+; Datums: X0 Y0 at the blank's top left corner, so it runs to X6.000
+; Y-2.500.  Z0 on its top surface; this takes 0.005 off.
+;
+; The face mill starts and finishes off the plate, and makes passes
+; along its length.
+;
+
+
+; -- settings ---------------------------------------------------------
+
+#<clear_z> = 0.500
+
+#<tool> = 2             ; face mill: set the number and diameter to yours
+#<tool_dia> = 1.500
+#<rpm> = 2000
+#<feed> = 15
+
+#<length> = 6.000
+#<width> = 2.500
+#<cut_z> = -0.005
+
+
+; -- program ----------------------------------------------------------
+
+o<ar15-start> call [#<clear_z>]
+o<ar15-tool> call [#<tool>] [#<rpm>] [#<feed>] [#<tool_dia>]
+
+; The "walls" sit outside the plate so the cutter's centre runs from
+; 0.100 off one end to 0.100 off the other, and covers the plate's edges
+; along the sides.
+o<ar15-pocket> call [-#<tool_dia> - 0.100] [#<tool_dia> / 2] [#<length> + #<tool_dia> + 0.100] [-#<width> - #<tool_dia> / 2] [0] [#<cut_z>] [#<tool_dia>] [#<tool_dia> / 2] [0.050] [0]
+
+o<ar15-end> call
+m2

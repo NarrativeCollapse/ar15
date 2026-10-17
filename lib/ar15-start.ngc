@@ -1,0 +1,38 @@
+;
+; ar15-start: put the interpreter in a known state at the top of a program.
+;
+;     o<ar15-start> call [clear z]
+;
+; Clear Z is the work-coordinate height that is above the part, the
+; fixture and every clamp.  The other subroutines only move X and Y at or
+; above it.
+;
+; Copyright (C) 2026 narrativecollapse.  Free software under the WTFPL,
+; version 2, with no warranty: see LICENSE.
+;
+
+o<ar15-start> sub
+
+    o<ar15-start-10> if [#1 LE 0]
+        (ABORT, ar15-start: pass the clear Z for this setup)
+    o<ar15-start-10> endif
+
+    o<ar15-machine> call
+
+    g20         ; inches
+    g17         ; XY plane
+    g90         ; absolute coordinates
+    g91.1       ; arc centres (I J) relative to the arc's start point
+    g94         ; feed in units per minute
+    g54         ; work coordinate system 1
+    g40         ; cutter compensation off
+    g49         ; tool length compensation off until a tool is loaded
+    g80         ; no canned cycle active
+    g98         ; canned cycles return to the Z they started from
+    g64 p0.0005 ; blend corners, staying within 0.0005 of the path
+    m5          ; spindle off
+    m9          ; coolant off
+
+    #<_ar15_clear_z> = #1
+
+o<ar15-start> endsub

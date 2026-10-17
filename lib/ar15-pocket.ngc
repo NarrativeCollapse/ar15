@@ -1,0 +1,217 @@
+;
+; ar15-pocket: mill a rectangular pocket, slot or face, without cutter
+; compensation.
+;
+;     o<ar15-pocket> call [x from] [y from] [x to] [y to] [z top] [z bottom]
+;                         [tool diameter] [stepover] [step down] [finish]
+;
+; X/Y "from" and "to" are the walls of the pocket: where the edge of the
+; cutter ends up, not its centre.  A side that runs off the part can be
+; put past the edge of the part.  The cutter plunges next to the "from"
+; corner, so put that corner where plunging is safe: off the part, or over
+; material that an earlier operation already removed.
+;
+; Z top is the highest material anywhere under the cutter's path; z bottom
+; is the floor.  Roughing steps down from z top to z bottom in equal steps
+; no deeper than "step down", and clears each level with back-and-forth
+; passes along the longer side of the pocket, no wider than "stepover".
+;
+; Finish is the stock left on the walls for one climb-milling pass around
+; them at the floor.  0 means no finish pass.
+;
+; Each level starts from the clear Z (through ar15-goto), and the cutter
+; returns to the clear Z when the pocket is done, so no rapid move ever
+; crosses the part.  The plunges are feed moves at half the current feed:
+; from the clear Z for the first level, so nothing depends on z top being
+; exact, and from 0.050 above the previous level's floor after that, since
+; the cutter has already cleared everything above that floor there.
+;
+; Copyright (C) 2026 narrativecollapse.  Free software under the WTFPL,
+; version 2, with no warranty: see LICENSE.
+;
+
+o<ar15-pocket> sub
+
+    #<x_from> = #1
+    #<y_from> = #2
+    #<x_to> = #3
+    #<y_to> = #4
+    #<z_top> = #5
+    #<z_bottom> = #6
+    #<dia> = #7
+    #<stepover> = #8
+    #<step_down> = #9
+    #<finish> = #10
+
+    o<ar15-pocket-10> if [[#<dia> LE 0] OR [#<stepover> LE 0] OR [#<step_down> LE 0] OR [#<finish> LT 0]]
+        (ABORT, ar15-pocket: diameter, stepover and step down must be positive, and finish must not be negative)
+    o<ar15-pocket-10> endif
+
+    o<ar15-pocket-20> if [#<z_bottom> GE #<z_top>]
+        (ABORT, ar15-pocket: z bottom must be below z top)
+    o<ar15-pocket-20> endif
+
+    o<ar15-pocket-30> if [[ABS[#<x_to> - #<x_from>] LT [#<dia> - 0.0001]] OR [ABS[#<y_to> - #<y_from>] LT [#<dia> - 0.0001]]]
+        (ABORT, ar15-pocket: the pocket is narrower than the cutter)
+    o<ar15-pocket-30> endif
+
+    #<r> = [#<dia> / 2]
+
+    ; which way "from" to "to" goes in each axis
+    #<sx> = 1
+    o<ar15-pocket-40> if [#<x_to> LT #<x_from>]
+        #<sx> = -1
+    o<ar15-pocket-40> endif
+    #<sy> = 1
+    o<ar15-pocket-50> if [#<y_to> LT #<y_from>]
+        #<sy> = -1
+    o<ar15-pocket-50> endif
+
+    ; where the cutter's centre is when its edge is on a finished wall
+    #<cx0> = [#<x_from> + #<sx> * #<r>]
+    #<cx1> = [#<x_to> - #<sx> * #<r>]
+    #<cy0> = [#<y_from> + #<sy> * #<r>]
+    #<cy1> = [#<y_to> - #<sy> * #<r>]
+
+    ; roughing stays the finish allowance away from each wall, but never
+    ; goes past the middle of a pocket that is barely wider than the cutter
+    #<fx> = #<finish>
+    o<ar15-pocket-60> if [#<fx> GT [ABS[#<cx1> - #<cx0>] / 2]]
+        #<fx> = [ABS[#<cx1> - #<cx0>] / 2]
+    o<ar15-pocket-60> endif
+    #<fy> = #<finish>
+    o<ar15-pocket-70> if [#<fy> GT [ABS[#<cy1> - #<cy0>] / 2]]
+        #<fy> = [ABS[#<cy1> - #<cy0>] / 2]
+    o<ar15-pocket-70> endif
+
+    #<rx0> = [#<cx0> + #<sx> * #<fx>]
+    #<rx1> = [#<cx1> - #<sx> * #<fx>]
+    #<ry0> = [#<cy0> + #<sy> * #<fy>]
+    #<ry1> = [#<cy1> - #<sy> * #<fy>]
+
+    ; passes run along the longer side (u) and step over along the
+    ; shorter one (v)
+    o<ar15-pocket-80> if [ABS[#<rx1> - #<rx0>] GE ABS[#<ry1> - #<ry0>]]
+        #<along_x> = 1
+        #<u0> = #<rx0>
+        #<u1> = #<rx1>
+        #<v0> = #<ry0>
+        #<v1> = #<ry1>
+    o<ar15-pocket-80> else
+        #<along_x> = 0
+        #<u0> = #<ry0>
+        #<u1> = #<ry1>
+        #<v0> = #<rx0>
+        #<v1> = #<rx1>
+    o<ar15-pocket-80> endif
+
+    ; number of stepovers after the first pass, and the (signed) size of
+    ; each.  The small subtraction stops rounding error from adding a pass
+    ; when the width is an exact multiple of the stepover (or zero).
+    #<passes> = FUP[ABS[#<v1> - #<v0>] / #<stepover> - 0.000001]
+    #<v_step> = 0
+    o<ar15-pocket-90> if [#<passes> GT 0]
+        #<v_step> = [[#<v1> - #<v0>] / #<passes>]
+    o<ar15-pocket-90> endif
+
+    #<levels> = FUP[[#<z_top> - #<z_bottom>] / #<step_down> - 0.000001]
+    o<ar15-pocket-95> if [#<levels> LT 1]
+        #<levels> = 1
+    o<ar15-pocket-95> endif
+    #<z_step> = [[#<z_top> - #<z_bottom>] / #<levels>]
+
+    #<feed> = #<_feed>
+    #<z_prev> = #<z_top>
+
+
+    ;
+    ; roughing, one Z level at a time
+    ;
+
+    #<level> = 1
+    o<ar15-pocket-100> while [#<level> LE #<levels>]
+
+        #<z> = [#<z_top> - #<level> * #<z_step>]
+        o<ar15-pocket-110> if [#<level> EQ #<levels>]
+            #<z> = #<z_bottom>
+        o<ar15-pocket-110> endif
+
+        ; over to the plunge point at the clear Z, then down
+        o<ar15-pocket-120> if [#<along_x>]
+            o<ar15-goto> call [#<u0>] [#<v0>]
+        o<ar15-pocket-120> else
+            o<ar15-goto> call [#<v0>] [#<u0>]
+        o<ar15-pocket-120> endif
+        o<ar15-pocket-125> if [#<level> GT 1]
+            g0 z[#<z_prev> + 0.050]
+        o<ar15-pocket-125> endif
+        g1 z#<z> f[#<feed> / 2]
+        f#<feed>
+
+        ; back-and-forth passes, stepping over along the end walls
+        #<u> = #<u0>
+        #<pass> = 0
+        o<ar15-pocket-130> while [#<pass> LE #<passes>]
+            #<v> = [#<v0> + #<pass> * #<v_step>]
+
+            o<ar15-pocket-140> if [#<pass> GT 0]
+                o<ar15-pocket-150> if [#<along_x>]
+                    g1 x#<u> y#<v>
+                o<ar15-pocket-150> else
+                    g1 x#<v> y#<u>
+                o<ar15-pocket-150> endif
+            o<ar15-pocket-140> endif
+
+            o<ar15-pocket-160> if [#<u> EQ #<u0>]
+                #<u> = #<u1>
+            o<ar15-pocket-160> else
+                #<u> = #<u0>
+            o<ar15-pocket-160> endif
+
+            o<ar15-pocket-170> if [#<along_x>]
+                g1 x#<u> y#<v>
+            o<ar15-pocket-170> else
+                g1 x#<v> y#<u>
+            o<ar15-pocket-170> endif
+
+            #<pass> = [#<pass> + 1]
+        o<ar15-pocket-130> endwhile
+
+        #<z_prev> = #<z>
+        #<level> = [#<level> + 1]
+
+    o<ar15-pocket-100> endwhile
+
+
+    ;
+    ; finish the walls at the floor: counter-clockwise around the pocket,
+    ; which is climb milling with the spindle turning clockwise (M3)
+    ;
+
+    o<ar15-pocket-200> if [#<finish> GT 0]
+
+        #<xmin> = #<cx0>
+        #<xmax> = #<cx1>
+        o<ar15-pocket-210> if [#<cx1> LT #<cx0>]
+            #<xmin> = #<cx1>
+            #<xmax> = #<cx0>
+        o<ar15-pocket-210> endif
+
+        #<ymin> = #<cy0>
+        #<ymax> = #<cy1>
+        o<ar15-pocket-220> if [#<cy1> LT #<cy0>]
+            #<ymin> = #<cy1>
+            #<ymax> = #<cy0>
+        o<ar15-pocket-220> endif
+
+        g1 x#<xmin> y#<ymin>
+        g1 x#<xmax>
+        g1 y#<ymax>
+        g1 x#<xmin>
+        g1 y#<ymin>
+
+    o<ar15-pocket-200> endif
+
+    g0 z#<_ar15_clear_z>
+
+o<ar15-pocket> endsub

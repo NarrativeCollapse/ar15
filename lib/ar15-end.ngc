@@ -1,0 +1,21 @@
+;
+; ar15-end: finish a program: spindle off, Z to the top of travel, and
+; optionally park the table (see ar15-machine.ngc).
+;
+;     o<ar15-end> call
+;
+; Copyright (C) 2026 narrativecollapse.  Free software under the WTFPL,
+; version 2, with no warranty: see LICENSE.
+;
+
+o<ar15-end> sub
+
+    g40 g80
+    m5 m9
+    g53 g0 z#<_ar15_change_z>
+
+    o<ar15-end-10> if [#<_ar15_park>]
+        g53 g0 x#<_ar15_park_x> y#<_ar15_park_y>
+    o<ar15-end-10> endif
+
+o<ar15-end> endsub

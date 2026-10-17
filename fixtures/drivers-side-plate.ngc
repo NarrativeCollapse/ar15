@@ -1,162 +1,62 @@
-
 ;
-; This program mills the "Driver's Side Plate", which is a fixture for
-; milling an AR-15 receiver from a 0% casting.
+; drivers-side-plate.ngc - mill the driver's side fixture plate.
 ;
-; It is based on the information in chapter 14 of "Machining the AR15
-; Lower Receiver Forging" by Ray Brandes, available from from Ray-Vin.com.
+; Copyright (C) 2026 narrativecollapse.  Free software under the WTFPL,
+; version 2, with no warranty: see LICENSE.
 ;
-; The work piece is a 6.000" x 2.500" x 0.500" Al plate, with the XY origin
-; at the top left corner and the Z origin at the upper surface of the
-; plate.  The workpiece thus extends to X=6.000, Y=-2.500, and Z=-0.500.
+; The plate is described in chapter 14 of "Machining the AR15 Lower
+; Receiver Forging" by Ray Brandes.  Its reliefs clear the bumps on the
+; driver's side of the forging.
 ;
-; The work piece is mounted in a vise with at least 0.313" sticking up
-; above the jaws.
+; Stock: 6.000 x 2.500 x 0.500 aluminium, faced (facemill-plate.ngc), in
+; the vise with at least 0.313 above the jaws.
 ;
-; T1 is a .250" diameter 4-flute end mill
-;
-
-
-
-
-;
-; control parameters
+; Datums: X0 Y0 at the plate's top left corner, so it runs to X6.000
+; Y-2.500.  Z0 on its top surface.
 ;
 
-#<CutterDiameter> = 0.250
-#<CutterRadius> = [ #<CutterDiameter> / 2 ]
 
-#<FinishAllowance> = 0.010
-#<MaxDOC> = #<CutterRadius>
+; -- settings ---------------------------------------------------------
 
+#<clear_z> = 0.100
 
-; YTopStaging and YBottomStaging are just more than one cutter radius off the work
-; YOffTheTop and YOffTheBottom are a bit outside the Staging 
+#<tool> = 1             ; 0.250 end mill
+#<tool_dia> = 0.250
+#<rpm> = 2000
+#<feed> = 5
 
-#<YOffTheTop> = 1.000
-#<YTopStaging> = 0.350
+#<stepover> = [#<tool_dia> / 2]
+#<step_down> = 0.125
+#<finish> = 0.010
 
-#<YOffTheBottom> = -3.500
-#<YBottomStaging> = -2.850
-
-
-#<ZSlotBottom> = -.313
-
-; FIXME: gotta figure out speeds & feeds!
-#<Speed> = 2000
-#<Feed> = 5
-
-#<SafeZ> = .1
+#<thin_z> = -0.106      ; the large thinned area
+#<slot_z> = -0.313      ; the two slots in the thinned area
+#<left_slot_z> = -0.125
 
 
-g20 (inch)
-g90 (absolute)
-g40 (disable cutter comp)
-g90.1 (arc centers are absolute)
+; -- program ----------------------------------------------------------
 
+o<ar15-start> call [#<clear_z>]
+o<ar15-tool> call [#<tool>] [#<rpm>] [#<feed>] [#<tool_dia>]
 
+; The large thinned area: X2.750 to the right end, the whole width.  It
+; plunges off the top edge.
+o<ar15-pocket> call [6.000 + #<tool_dia> / 2] [#<tool_dia> * 1.5] [2.750] [-2.500 - #<tool_dia> * 1.5] [0] [#<thin_z>] [#<tool_dia>] [#<stepover>] [#<step_down>] [#<finish>]
 
+; The right slot, X3.750 to X4.500, the whole width.  It plunges off the
+; bottom edge.
+o<ar15-pocket> call [3.750] [-2.500 - #<tool_dia> * 1.5] [4.500] [#<tool_dia> * 1.5] [#<thin_z>] [#<slot_z>] [#<tool_dia>] [#<stepover>] [#<step_down>] [#<finish>]
 
-; fetch the .250 end mill
-m6 t1 g43
+; The small slot at the top, from the thinned area's wall at X2.750.
+; NOTE: the original program put the cutter's centre, not its edge, at
+; X3.438 Y-0.500 here, unlike every other pocket, so this slot came out
+; to X3.563 Y-0.625.  Those are the walls kept here.  Check them against
+; the book's drawing; if the drawing says 3.438 and 0.500, use those.
+o<ar15-pocket> call [2.750] [#<tool_dia> * 1.5] [3.563] [-0.625] [#<thin_z>] [#<slot_z>] [#<tool_dia>] [#<stepover>] [#<step_down>] [#<finish>]
 
-m3 s#<Speed>
-f#<Feed>
-; FIXME: a pause & a message here would be handy
+; The slot on the left: 0.376 wide, centred on Y-0.594, from the left
+; edge to X1.563.  It plunges off the left edge and cuts along X.
+o<ar15-pocket> call [-#<tool_dia> * 1.5] [-0.594 + 0.188] [1.375 + 0.188] [-0.594 - 0.188] [0] [#<left_slot_z>] [#<tool_dia>] [#<stepover>] [#<step_down>] [#<finish>]
 
-g0 z#<SafeZ>
-
-
-
-; 
-; start with the large thinned area of the plate
-;
-
-o100 if [1]
-
-    #<StartX> = 6.000
-    #<StartY> = [0 + #<CutterDiameter>]
-
-    #<EndX> = [ 2.750 + #<CutterRadius> ]
-    #<EndY> = [-2.500 - #<CutterDiameter>]
-
-    #<PocketZ> = -0.106
-
-    o<rectangular-pocket-0> call [#<StartX>] [#<StartY>] [#<EndX>] [#<EndY>] [#<PocketZ>] [#<SafeZ>] [#<MaxDOC>] [#<FinishAllowance>]
-
-o100 endif
-
-
-
-
-;
-; cut the rightmost slot
-; we're starting off the bottom, well left of the slot
-;
-
-o200 if [1]
-
-    #<StartX> = [ 3.750 + #<CutterRadius> ]
-    #<StartY> = [-2.500 - #<CutterDiameter>]
-
-    #<EndX> = [ 4.500 - #<CutterRadius> ]
-    #<EndY> = [ 0 + #<CutterDiameter>]
-
-    #<PocketZ> = -0.313
-
-    o<rectangular-pocket-0> call [#<StartX>] [#<StartY>] [#<EndX>] [#<EndY>] [#<PocketZ>] [#<SafeZ>] [#<MaxDOC>] [#<FinishAllowance>]
-
-o200 endif
-
-
-
-
-;
-; cut the small slot in the top/middle
-;
-
-o300 if [1]
-
-    #<StartX> = [ 2.750 + #<CutterRadius> ]
-    #<StartY> = [ 0 + #<CutterDiameter>]
-
-    #<EndX> = [ 3.438 ]
-    #<EndY> = [ -0.500 ]
-
-    #<PocketZ> = -0.313
-
-    o<rectangular-pocket-0> call [#<StartX>] [#<StartY>] [#<EndX>] [#<EndY>] [#<PocketZ>] [#<SafeZ>] [#<MaxDOC>] [#<FinishAllowance>]
-
-o300 endif
-
-
-
-
-;
-; cut the slot on the left
-;
-
-o400 if [1]
-
-    #<StartX> = [ 0 - #<CutterDiameter> ]
-    #<StartY> = [ -0.594 + 0.188 - #<CutterRadius> ]
-
-    #<EndX> = [ 1.375 + 0.188 - #<CutterRadius> ]
-    #<EndY> = [ -0.594 - 0.188 + #<CutterRadius> ]
-
-    #<PocketZ> = -0.125
-
-    o<rectangular-pocket-0> call [#<StartX>] [#<StartY>] [#<EndX>] [#<EndY>] [#<PocketZ>] [#<SafeZ>] [#<MaxDOC>] [#<FinishAllowance>]
-
-o400 endif
-
-
-
-
-; 
-; done!
-;
-
-o<presentation-position-0> call
+o<ar15-end> call
 m2
-

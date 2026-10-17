@@ -1,0 +1,44 @@
+;
+; ar15-hole: make one hole with a canned cycle.
+;
+;     o<ar15-hole> call [x] [y] [top z] [bottom z] [kind] [peck]
+;
+; Kind 1: spot drill (G81: feed in, rapid out)
+; Kind 2: peck drill (G83, "peck" deep per peck; for a blind hole, bottom
+;         z is where the drill's point ends up)
+; Kind 3: ream (G85: feed in and feed back out, so the reamer never
+;         rapids out of the bore with the spindle running)
+;
+; The tool arrives over the hole at the clear Z, rapids to 0.050 above
+; the top of the hole, and comes back to the clear Z afterwards.
+;
+; Copyright (C) 2026 narrativecollapse.  Free software under the WTFPL,
+; version 2, with no warranty: see LICENSE.
+;
+
+o<ar15-hole> sub
+
+    o<ar15-hole-10> if [#4 GE #3]
+        (ABORT, ar15-hole: the bottom of the hole must be below its top)
+    o<ar15-hole-10> endif
+
+    o<ar15-goto> call [#1] [#2]
+
+    #<r> = [#3 + 0.050]
+
+    o<ar15-hole-20> if [#5 EQ 1]
+        g98 g81 x#1 y#2 z#4 r#<r>
+    o<ar15-hole-20> elseif [#5 EQ 2]
+        o<ar15-hole-30> if [#6 LE 0]
+            (ABORT, ar15-hole: peck drilling needs a peck depth)
+        o<ar15-hole-30> endif
+        g98 g83 x#1 y#2 z#4 r#<r> q#6
+    o<ar15-hole-20> elseif [#5 EQ 3]
+        g98 g85 x#1 y#2 z#4 r#<r>
+    o<ar15-hole-20> else
+        (ABORT, ar15-hole: kind must be 1, 2 or 3)
+    o<ar15-hole-20> endif
+
+    g80
+
+o<ar15-hole> endsub

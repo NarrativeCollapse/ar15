@@ -1,0 +1,348 @@
+;
+; setup-3-drivers-side.ngc - AR-15 lower receiver from a forging, setup 3:
+; the holes, slots and pockets on the driver's side.
+;
+; Copyright (C) 2026 narrativecollapse.  Free software under the WTFPL,
+; version 2, with no warranty: see LICENSE.
+;
+; Work holding: the forging is in the vise, clamped on the deck and the
+; trigger guard bosses, driver's side up.  The passenger's side must be
+; at least 0.35 above anything under it, because through holes are
+; drilled to Z-1.500.  The surface the safety stop bumps stand on must be
+; at least 1/32 above the vise jaws, because the bolt release slot is
+; milled out through the deck at that level.
+;
+; Datums (set them with setup-3-measure.ngc):
+;     X0 Y0  the centre of the pivot pin hole; the butt face is at X7.500
+;            and the deck at Y0.250
+;     Z0     the top of the bolt release bump, the highest point of the
+;            forging
+;
+; Order of operations.  The spring hole for the bolt release is drilled
+; into the floor of the bolt release slot, so the top of the slot is
+; milled first to give the spot drill a flat place to start.  Every hole
+; is then spot drilled, drilled with the drill that leaves it ready to
+; ream (or at its finished size), and reamed; all the reaming comes after
+; all the drilling, to keep speed changes to a minimum.  The slots and
+; pockets come last.
+;
+;      1.  spot face for the spring hole (top of the bolt release slot)
+;      2.  spot drill all 8 holes
+;      3.  drill: 1/8, #24, #5, letter D, letter U
+;      4.  ream: 5/32, .251, .376
+;      5.  bolt release slot
+;      6.  safety selector stops
+;      7.  magazine release slot
+;      8.  pistol grip pocket
+;
+; Each operation has a "do_" switch below, so a setup can be re-run from
+; any point.
+;
+
+
+; -- measurements -----------------------------------------------------
+;
+; Z of each surface, from setup-3-measure.ngc.  Measure every casting.
+; The numbers after each line are what four castings in the original
+; project measured.
+
+#<z_bolt_release_base>  = -0.188    ; -0.189 -0.188 -0.188 -0.188
+#<z_mag_release_top>    = -0.039    ; -0.040 -0.039 -0.039 -0.037
+#<z_mag_release_base>   = -0.130    ; -0.130 -0.130 -0.129 -0.126
+#<z_safety_base>        = -0.295    ; -0.298 -0.295 -0.295 -0.295
+#<z_pistol_grip>        = -0.479    ; -0.491 -0.481 -0.479 -0.479
+#<z_rear_trigger_guard> = -0.403    ; -0.407 -0.405 -0.403 -0.401
+
+; Thickness of the forging across the safety bump base surface and the
+; matching surface on the other side, by calipers.  Measured: 0.874,
+; 0.878, 0.878, 0.880.
+#<thickness> = 0.874
+
+#<z_centre> = [#<z_safety_base> - #<thickness> / 2]
+
+
+; -- operations to run ------------------------------------------------
+
+#<do_spot_face> = 1
+#<do_spot> = 1
+#<do_drill> = 1
+#<do_ream> = 1
+#<do_bolt_release_slot> = 1
+#<do_safety_stops> = 1
+#<do_mag_release_slot> = 1
+#<do_pistol_grip> = 1
+
+
+; -- tools, speeds and feeds ------------------------------------------
+;
+; Drills (HSS in aluminium): rpm = 4 x 200 sfm / diameter, capped at
+; 3500, and 0.016 x diameter per rev.  Reamers: 400 rpm and twice the
+; drill's feed per rev.  End mills: 2 flutes, center cutting; the 1/8 one
+; needs at least 3/8 of flute length for the bolt release slot.
+
+#<clear_z> = 0.100
+#<through_z> = -1.500
+#<spot_depth> = 0.030
+#<peck> = 0.050
+
+#<spot_tool> = 17               ; spot drill
+#<spot_rpm> = 3500
+#<spot_feed> = 5
+
+; The bolt release spring hole is spotted at the bottom of the 0.167 wide
+; spot face, so the spot drill's body must be narrower than that (a 1/8
+; spot drill, or a #1 center drill).  If your spot drill is wider, put a
+; narrower one's number here; the program checks the tool table.
+#<spring_spot_tool> = #<spot_tool>
+
+#<drill_125_tool> = 18          ; 1/8 drill
+#<drill_125_dia> = 0.125
+#<drill_125_rpm> = 3500
+
+#<drill_n24_tool> = 19          ; #24 drill, for the 5/32 reamer
+#<drill_n24_dia> = 0.152
+#<drill_n24_rpm> = 3500
+
+#<drill_n5_tool> = 21           ; #5 drill
+#<drill_n5_dia> = 0.2055
+#<drill_n5_rpm> = 3500
+
+#<drill_d_tool> = 22            ; letter D drill, for the .251 reamer
+#<drill_d_dia> = 0.246
+#<drill_d_rpm> = 3250
+
+#<drill_u_tool> = 24            ; letter U drill, for the .376 reamer
+#<drill_u_dia> = 0.368
+#<drill_u_rpm> = 2175
+
+#<ream_156_tool> = 20           ; 5/32 reamer
+#<ream_156_dia> = 0.156
+#<ream_251_tool> = 23           ; .251 reamer
+#<ream_251_dia> = 0.251
+#<ream_376_tool> = 25           ; .376 reamer
+#<ream_376_dia> = 0.376
+#<ream_rpm> = 400
+
+#<em_125_tool> = 16             ; 1/8 end mill
+#<em_125_dia> = 0.125
+#<em_125_rpm> = 2500
+#<em_125_feed> = 5
+
+#<em_250_tool> = 26             ; 1/4 end mill
+#<em_250_dia> = 0.250
+#<em_250_rpm> = 2500
+#<em_250_feed> = 5
+
+#<em_500_tool> = 5              ; 1/2 end mill
+#<em_500_dia> = 0.500
+#<em_500_rpm> = 2000
+#<em_500_feed> = 5
+
+
+; -- the 8 holes ------------------------------------------------------
+;
+; Where Ray Brandes' book and the drawing disagree, the drawing's number
+; is used and the book's is noted.
+
+; pivot pin: .251 reamed
+#<pivot_x> = 0.000
+#<pivot_y> = 0.000
+#<pivot_top> = #<z_bolt_release_base>
+
+; takedown pin: .251 reamed
+#<takedown_x> = 6.375
+#<takedown_y> = 0.000
+#<takedown_top> = #<z_safety_base>
+
+; safety selector: .376 reamed
+#<safety_x> = 5.572
+#<safety_y> = -0.464
+#<safety_top> = #<z_safety_base>
+
+; trigger pin: 5/32 reamed
+#<trigger_x> = 4.447
+#<trigger_y> = -0.689
+#<trigger_top> = #<z_safety_base>
+
+; hammer pin: 5/32 reamed
+#<hammer_x> = 3.604
+#<hammer_y> = -0.375
+#<hammer_top> = #<z_safety_base>
+
+; rear trigger guard: 1/8 drilled (the book: X4.875 Y-2.188)
+#<rear_guard_x> = 4.8765
+#<rear_guard_y> = -2.180
+#<rear_guard_top> = #<z_rear_trigger_guard>
+
+; magazine release: #5 drilled (the book: X3.079 Y-0.563)
+#<mag_x> = 3.084
+#<mag_y> = -0.5625
+#<mag_top> = #<z_bolt_release_base>
+
+; bolt release spring: 5/32 reamed, blind.  The drill's point goes 1/32
+; past the centre line of the forging (from the book).  The reamer stops
+; where the drill's full diameter ends, so it never has to cut the cone
+; the drill point leaves.
+#<spring_x> = 3.079
+#<spring_y> = -0.194
+#<spring_top> = [#<z_bolt_release_base> - 0.010]       ; the spot face
+#<spring_drill_z> = [#<z_centre> - 1 / 32]
+#<spring_ream_z> = [#<spring_drill_z> + #<drill_n24_dia> / 2 / TAN[59] + 0.010]
+
+
+; -- the slots and pockets --------------------------------------------
+
+; Bolt release slot, 0.167 +- 0.010 wide, centred on the spring hole.  It
+; runs out through the deck and down to Y-0.358 (the book: -0.279 - 5/64;
+; the drawing's section C-C: 0.630 from the deck, which is Y-0.380).  Its
+; top, down to just below the bolt release bump's base, is the spot face.
+#<br_slot_width> = 0.167
+#<br_slot_x0> = [#<spring_x> - #<br_slot_width> / 2]
+#<br_slot_x1> = [#<spring_x> + #<br_slot_width> / 2]
+#<br_slot_y0> = [0.250 + #<em_125_dia> + 0.040]     ; plunge 0.030 off the deck
+#<br_slot_y1> = -0.358
+#<br_slot_z> = #<z_safety_base>
+
+; Safety selector stops: one pass of the 1/4 end mill, centred on the
+; selector hole and 2 long, cuts the stop bumps down to just above their
+; base.  The stops' spacing comes from the cutter, so it must be 1/4.  The
+; bumps' height is not measured, so roughing starts from Z0.
+#<stop_x0> = [#<safety_x> - 1 - #<em_250_dia> / 2]
+#<stop_x1> = [#<safety_x> + 1 + #<em_250_dia> / 2]
+#<stop_z> = [#<z_safety_base> + 0.004]
+
+; Magazine release slot: 1/4 wide, from X1.943 to X3.202 at the cutter's
+; centre (the book: 1.938 to 3.197, at Y-0.563), 5/32 below the bolt
+; release bump's base.  The first part goes through the magazine release
+; bump, from its top down to the higher of the two base surfaces.
+#<mag_slot_x0> = [1.943 - #<em_250_dia> / 2]
+#<mag_slot_x1> = [3.202 + #<em_250_dia> / 2]
+#<mag_slot_bump_x1> = [2.400 + #<em_250_dia> / 2]
+#<mag_slot_y0> = [#<mag_y> - #<em_250_dia> / 2]
+#<mag_slot_y1> = [#<mag_y> + #<em_250_dia> / 2]
+#<mag_slot_base> = #<z_bolt_release_base>
+o10 if [#<z_mag_release_base> GT #<mag_slot_base>]
+    #<mag_slot_base> = #<z_mag_release_base>
+o10 endif
+#<mag_slot_z> = [#<z_bolt_release_base> - 5 / 32]
+
+; Pistol grip pocket: leaves the grip tang 3/16 each side of the centre
+; line.  Its walls are X5.200 (the book: 5.203) and Y-1.066; the other two
+; sides run out past the tang.  It plunges at the open corner, away from
+; both walls.
+#<grip_x0> = 7.000
+#<grip_y0> = -2.750
+#<grip_x1> = 5.200
+#<grip_y1> = -1.066
+#<grip_z> = [#<z_centre> + 3 / 16]
+
+
+; -- program ----------------------------------------------------------
+
+o<ar15-start> call [#<clear_z>]
+
+
+; 1. spot face for the spring hole: the top of the bolt release slot,
+; through the bolt release bump to 0.010 below its base
+o100 if [#<do_spot_face>]
+    o<ar15-tool> call [#<em_125_tool>] [#<em_125_rpm>] [#<em_125_feed>] [#<em_125_dia>]
+    o<ar15-pocket> call [#<br_slot_x0>] [#<br_slot_y0>] [#<br_slot_x1>] [#<br_slot_y1>] [0] [#<spring_top>] [#<em_125_dia>] [#<em_125_dia> / 2] [#<em_125_dia> / 2] [0.010]
+o100 endif
+
+
+; 2. spot drill all 8 holes
+o200 if [#<do_spot>]
+    o<ar15-tool> call [#<spot_tool>] [#<spot_rpm>] [#<spot_feed>] [0]
+    o<ar15-hole> call [#<pivot_x>] [#<pivot_y>] [#<pivot_top>] [#<pivot_top> - #<spot_depth>] [1] [0]
+    o<ar15-hole> call [#<takedown_x>] [#<takedown_y>] [#<takedown_top>] [#<takedown_top> - #<spot_depth>] [1] [0]
+    o<ar15-hole> call [#<safety_x>] [#<safety_y>] [#<safety_top>] [#<safety_top> - #<spot_depth>] [1] [0]
+    o<ar15-hole> call [#<trigger_x>] [#<trigger_y>] [#<trigger_top>] [#<trigger_top> - #<spot_depth>] [1] [0]
+    o<ar15-hole> call [#<hammer_x>] [#<hammer_y>] [#<hammer_top>] [#<hammer_top> - #<spot_depth>] [1] [0]
+    o<ar15-hole> call [#<rear_guard_x>] [#<rear_guard_y>] [#<rear_guard_top>] [#<rear_guard_top> - #<spot_depth>] [1] [0]
+    o<ar15-hole> call [#<mag_x>] [#<mag_y>] [#<mag_top>] [#<mag_top> - #<spot_depth>] [1] [0]
+
+    o210 if [#<spring_spot_tool> NE #<spot_tool>]
+        o<ar15-tool> call [#<spring_spot_tool>] [#<spot_rpm>] [#<spot_feed>] [0]
+    o210 endif
+    o220 if [#5410 GT [#<br_slot_width> - 0.010]]
+        (ABORT, Tool %d#<spring_spot_tool> is %.4f#5410 across: too wide for the bolt release slot.  See spring_spot_tool in this file)
+    o220 elseif [#5410 EQ 0]
+        (DEBUG, Tool %d#<spring_spot_tool> has no diameter in the tool table.  Its body must be narrower than %.3f#<br_slot_width> to reach the spring hole.  Press Resume if it is)
+        m0
+    o220 endif
+    o<ar15-hole> call [#<spring_x>] [#<spring_y>] [#<spring_top>] [#<spring_top> - #<spot_depth>] [1] [0]
+o200 endif
+
+
+; 3. drill
+o300 if [#<do_drill>]
+    o<ar15-tool> call [#<drill_125_tool>] [#<drill_125_rpm>] [0.016 * #<drill_125_dia> * #<drill_125_rpm>] [#<drill_125_dia>]
+    o<ar15-hole> call [#<rear_guard_x>] [#<rear_guard_y>] [#<rear_guard_top>] [#<through_z>] [2] [#<peck>]
+
+    o<ar15-tool> call [#<drill_n24_tool>] [#<drill_n24_rpm>] [0.016 * #<drill_n24_dia> * #<drill_n24_rpm>] [#<drill_n24_dia>]
+    o<ar15-hole> call [#<trigger_x>] [#<trigger_y>] [#<trigger_top>] [#<through_z>] [2] [#<peck>]
+    o<ar15-hole> call [#<hammer_x>] [#<hammer_y>] [#<hammer_top>] [#<through_z>] [2] [#<peck>]
+    o<ar15-hole> call [#<spring_x>] [#<spring_y>] [#<spring_top>] [#<spring_drill_z>] [2] [#<peck>]
+
+    o<ar15-tool> call [#<drill_n5_tool>] [#<drill_n5_rpm>] [0.016 * #<drill_n5_dia> * #<drill_n5_rpm>] [#<drill_n5_dia>]
+    o<ar15-hole> call [#<mag_x>] [#<mag_y>] [#<mag_top>] [#<through_z>] [2] [#<peck>]
+
+    o<ar15-tool> call [#<drill_d_tool>] [#<drill_d_rpm>] [0.016 * #<drill_d_dia> * #<drill_d_rpm>] [#<drill_d_dia>]
+    o<ar15-hole> call [#<pivot_x>] [#<pivot_y>] [#<pivot_top>] [#<through_z>] [2] [#<peck>]
+    o<ar15-hole> call [#<takedown_x>] [#<takedown_y>] [#<takedown_top>] [#<through_z>] [2] [#<peck>]
+
+    o<ar15-tool> call [#<drill_u_tool>] [#<drill_u_rpm>] [0.016 * #<drill_u_dia> * #<drill_u_rpm>] [#<drill_u_dia>]
+    o<ar15-hole> call [#<safety_x>] [#<safety_y>] [#<safety_top>] [#<through_z>] [2] [#<peck>]
+o300 endif
+
+
+; 4. ream (G85: the reamer feeds back out of the bore)
+o400 if [#<do_ream>]
+    o<ar15-tool> call [#<ream_156_tool>] [#<ream_rpm>] [0.032 * #<ream_156_dia> * #<ream_rpm>] [#<ream_156_dia>]
+    o<ar15-hole> call [#<trigger_x>] [#<trigger_y>] [#<trigger_top>] [#<through_z>] [3] [0]
+    o<ar15-hole> call [#<hammer_x>] [#<hammer_y>] [#<hammer_top>] [#<through_z>] [3] [0]
+    o<ar15-hole> call [#<spring_x>] [#<spring_y>] [#<spring_top>] [#<spring_ream_z>] [3] [0]
+
+    o<ar15-tool> call [#<ream_251_tool>] [#<ream_rpm>] [0.032 * #<ream_251_dia> * #<ream_rpm>] [#<ream_251_dia>]
+    o<ar15-hole> call [#<pivot_x>] [#<pivot_y>] [#<pivot_top>] [#<through_z>] [3] [0]
+    o<ar15-hole> call [#<takedown_x>] [#<takedown_y>] [#<takedown_top>] [#<through_z>] [3] [0]
+
+    o<ar15-tool> call [#<ream_376_tool>] [#<ream_rpm>] [0.032 * #<ream_376_dia> * #<ream_rpm>] [#<ream_376_dia>]
+    o<ar15-hole> call [#<safety_x>] [#<safety_y>] [#<safety_top>] [#<through_z>] [3] [0]
+o400 endif
+
+
+; 5. bolt release slot, from the spot face down to the safety bump base
+o500 if [#<do_bolt_release_slot>]
+    o<ar15-tool> call [#<em_125_tool>] [#<em_125_rpm>] [#<em_125_feed>] [#<em_125_dia>]
+    o<ar15-pocket> call [#<br_slot_x0>] [#<br_slot_y0>] [#<br_slot_x1>] [#<br_slot_y1>] [#<spring_top>] [#<br_slot_z>] [#<em_125_dia>] [#<em_125_dia> / 2] [#<em_125_dia> / 2] [0.010]
+o500 endif
+
+
+; 6. safety selector stops
+o600 if [#<do_safety_stops>]
+    o<ar15-tool> call [#<em_250_tool>] [#<em_250_rpm>] [#<em_250_feed>] [#<em_250_dia>]
+    o<ar15-pocket> call [#<stop_x0>] [#<safety_y> - #<em_250_dia> / 2] [#<stop_x1>] [#<safety_y> + #<em_250_dia> / 2] [0] [#<stop_z>] [#<em_250_dia>] [#<em_250_dia> / 2] [0.100] [0]
+o600 endif
+
+
+; 7. magazine release slot: through the bump, then the full length; each
+; level plunges at the X1.943 end, which the level before has cleared
+o700 if [#<do_mag_release_slot>]
+    o<ar15-tool> call [#<em_250_tool>] [#<em_250_rpm>] [#<em_250_feed>] [#<em_250_dia>]
+    o<ar15-pocket> call [#<mag_slot_x0>] [#<mag_slot_y0>] [#<mag_slot_bump_x1>] [#<mag_slot_y1>] [#<z_mag_release_top>] [#<mag_slot_base>] [#<em_250_dia>] [#<em_250_dia> / 2] [0.050] [0]
+    o<ar15-pocket> call [#<mag_slot_x0>] [#<mag_slot_y0>] [#<mag_slot_x1>] [#<mag_slot_y1>] [#<mag_slot_base>] [#<mag_slot_z>] [#<em_250_dia>] [#<em_250_dia> / 2] [0.080] [0]
+o700 endif
+
+
+; 8. pistol grip pocket.  It starts from the clear Z like every other
+; operation: the original program used the grip surface + 0.100 as its
+; retract height here, which is below the side of the receiver.
+o800 if [#<do_pistol_grip>]
+    o<ar15-tool> call [#<em_500_tool>] [#<em_500_rpm>] [#<em_500_feed>] [#<em_500_dia>]
+    o<ar15-pocket> call [#<grip_x0>] [#<grip_y0>] [#<grip_x1>] [#<grip_y1>] [#<z_pistol_grip>] [#<grip_z>] [#<em_500_dia>] [#<em_500_dia> / 2] [#<em_500_dia> / 2] [0.010]
+o800 endif
+
+
+o<ar15-end> call
+m2
