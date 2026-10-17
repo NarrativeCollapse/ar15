@@ -1,0 +1,87 @@
+;
+; setup-1-deck.ngc - AR-15 lower receiver from a forging, setup 1:
+; the deck and the buffer tower.
+;
+; Copyright (C) 2026 narrativecollapse.  Free software under the WTFPL,
+; version 2, with no warranty: see LICENSE.
+;
+; One side-milling contour finishes the deck, the 0.750 radius where the
+; deck meets the buffer tower, the front and top of the tower, and the
+; butt face.  It is cut in 9 passes at full depth: 8 roughing passes that
+; each move 0.015 closer to the finished outline, then a 0.005 finishing
+; pass.  The passes come from cutter compensation with a cutter diameter
+; that is oversize by the stock still to be left.
+;
+; Work holding: the forging is clamped to the table on the passenger's
+; side fixture plate, driver's side up.  The deck runs along X, with the
+; buffer tower to the left (-X) and the pivot pin end to the right (+X).
+;
+; Datums:
+;     X0 Y0  the pivot pin hole (not drilled yet).  Pick it up from the
+;            magazine catch boss, whose centre is X-2.109 Y0.563.
+;     Z0     the tip of the end mill for the contour.  Choose it so the
+;            flutes cover the whole thickness of the forging and the tip
+;            stays clear of the fixture plate.
+;     The deck ends up on the line Y-0.250.
+;
+
+
+; -- settings ---------------------------------------------------------
+
+#<clear_z> = 3.800      ; above the forging, the plate and every clamp
+#<cut_z> = 0.000
+
+#<tool> = 6             ; 0.750 4-flute end mill
+#<tool_dia> = 0.750
+#<flutes> = 4
+#<rpm> = 2000
+
+; The radial engagement is only 0.015, so the chips come out much thinner
+; than the feed per tooth (radial chip thinning: about 0.28 x here).
+; 0.0018 in/tooth programmed gives a real chip of about 0.0005.  Lower it
+; if your machine chatters.
+#<feed_per_tooth> = 0.0018
+#<feed> = [#<rpm> * #<flutes> * #<feed_per_tooth>]
+
+#<rough_passes> = 8
+#<radial_step> = 0.015
+#<finish> = 0.005
+
+
+; -- program ----------------------------------------------------------
+
+o<ar15-start> call [#<clear_z>]
+o<ar15-tool> call [#<tool>] [#<rpm>] [#<feed>] [#<tool_dia>]
+
+#<pass> = 1
+o100 while [#<pass> LE [#<rough_passes> + 1]]
+
+    ; stock to leave on the outline after this pass
+    #<leave> = 0
+    o110 if [#<pass> LE #<rough_passes>]
+        #<leave> = [#<finish> + #<radial_step> * [#<rough_passes> - #<pass>]]
+    o110 endif
+
+    ; Start well in front of the receiver.  After the entry move the
+    ; cutter's edge is at least 0.85 in front of the pivot pin, clear of
+    ; the forging, and it feeds (not rapids) down to depth there.
+    o<ar15-goto> call [2.500] [-1.000]
+
+    g41.1 d[#<tool_dia> + 2 * #<leave>]
+    g0 x1.500 y-0.250       ; entry move onto the deck line
+    g1 z#<cut_z>
+
+    g1 x-6.250                      ; the deck
+    g3 x-7.000 y-1.000 i0 j-0.750   ; radius into the front of the tower
+    g1 y-1.575                      ; front face of the tower
+    g1 x-7.500                      ; top of the tower
+    g1 y1.000                       ; butt face
+
+    g0 z#<clear_z>
+    g40
+
+    #<pass> = [#<pass> + 1]
+o100 endwhile
+
+o<ar15-end> call
+m2

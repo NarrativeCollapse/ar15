@@ -1,101 +1,61 @@
-
 ;
-; This program mills a chamfer on all accessible edges of the "Passenger's
-; Side Plate", which is a fixture for milling an AR-15 receiver from a 0%
-; casting.
+; passenger-side-chamfer.ngc - chamfer the edges of the high part of the
+; passenger's side fixture plate.
 ;
-; It is based on the information in chapter 14 of "Machining the AR15 Lower
-; Receiver Forging" by Ray Brandes, available from from Ray-Vin.com.
+; Copyright (C) 2026 narrativecollapse.  Free software under the WTFPL,
+; version 2, with no warranty: see LICENSE.
 ;
-; This program wants to run on a part that has already had the
-; passenger-side-plate.ngc program run on it, and that has had the 10
-; degree cut on the -Y side done.
+; Run this after passenger-side-plate.ngc and after the 10 degree edge is
+; cut on the -Y side (plate-angle.ngc).  Same work holding and datums as
+; passenger-side-plate.ngc: X0 Y0 at the top right corner, Z0 on top.
 ;
-; The work piece is a 6.000" x 2.500" x 0.500" Al plate, with the XY origin
-; at the top right corner and the Z origin at the upper surface of the
-; plate.  The workpiece thus extends to X=-6.000, Y=-2.500, and Z=-0.500.
-;
-; The work piece is mounted in a vise with at least 0.313" sticking up
-; above the jaws.
-;
-; T4 is a .250" diameter 2-flute 90 degree drill/mill
+; The tool is a 90 degree drill-mill.  Its tip runs #<depth> below the top
+; surface and #<offset> outside each edge, so the chamfer is
+; #<depth> - #<offset> wide.  Cutter compensation with a "diameter" of
+; twice the offset keeps the tip exactly that far from the real outline,
+; including around the corners, so the program can follow the outline
+; itself.  It goes clockwise, which is climb milling on an outside edge.
 ;
 
 
-;
-; Chamfer depth is how far "below grade" the tip of the drill-mill is.
-; Chamfer offset is how far "off the wall" the tip of the drill-mill is.
-; Since the chamfering bit has a 90 degree point, the linear amount of
-; material removed, in the XY plane at Z, is:
-;
-;     [ #<ChamferDepth> - #<ChamferOffset> ]
-;
+; -- settings ---------------------------------------------------------
 
-#<ChamferDepth> = 0.020
-#<ChamferOffset> = 0.010
+#<clear_z> = 0.500
 
-#<DrillMillFeed> = 3
+#<tool> = 4             ; 0.250 90 degree drill-mill
+#<tool_dia> = 0.250
+#<rpm> = 3000
+#<feed> = 3
 
-#<SafeZ> = .5
+#<depth> = 0.020
+#<offset> = 0.010
 
-
-g20 (inch)
-g90 (absolute)
-g40 (disable cutter comp)
-g90.1 (arc centers are absolute)
+; the high part: X-2.750 to X0, Y-2.500 to Y0, with the 10 degree edge
+; starting at X-2.101 on the bottom edge
+#<wall_x> = -2.750
+#<bevel_x> = -2.101
+#<bevel_y> = [-2.500 + [#<bevel_x> - #<wall_x>] * TAN[10]]
 
 
+; -- program ----------------------------------------------------------
 
+o<ar15-start> call [#<clear_z>]
+o<ar15-tool> call [#<tool>] [#<rpm>] [#<feed>] [#<tool_dia>]
 
+; start up and to the left of the top left corner, over the thinned area
+o<ar15-goto> call [#<wall_x> - 0.250] [0.250]
+g41.1 d[2 * #<offset>]
+g0 x#<wall_x> y0.000            ; entry move
+g1 z[0.000 - #<depth>]
 
+g1 x0.000                       ; top edge
+g1 y-2.500                      ; right edge
+g1 x#<bevel_x>                  ; bottom edge
+g1 x#<wall_x> y#<bevel_y>       ; the 10 degree edge
+g1 y0.000                       ; the X-2.750 wall, up through the slots
 
+g0 z#<clear_z>
+g40
 
-; fetch the 1/4" drill-mill
-m6 t4 g43
-
-; ask the user to set speed
-; FIXME: it'd be cool to have a manual speed changer, analogous to the
-; manual tool changer
-m3 s3000
-(MSG, Set spindle speed to 3000 rpm)
-m1
-
-f#<DrillMillFeed>
-
-g0 z#<SafeZ>
-
-
-;
-; chamfer around the high part on the right
-;
-
-o100 if [1]
-
-    ; this is the corner between the vertical wall and the 10 degree angled cut
-    #<CornerX> = -2.750
-    #<CornerY> = [ -2.500 + [ [2.750-2.101] * tan[10] ]]
-
-    g0 x-2.750 y[ 0.000 + #<ChamferOffset> ]
-
-    g1 z[  0.000 - #<ChamferDepth> ]
-
-    g1 x[  0.000 + #<ChamferOffset> ]
-    g1 y[ -2.500 - #<ChamferOffset> ]
-    g1 x[ -2.101 - [ #<ChamferOffset> * sin[10] ] ]
-    g1 x[ #<CornerX> - #<ChamferOffset> ] y[ #<CornerY> - [#<ChamferOffset> * [ 1/cos[10] - tan[10]]] ]
-    g1 y[ 0 + #<ChamferOffset> ]
-
-    g0 z#<SafeZ>
-
-o100 endif
-
-
-
-
-; 
-; done!
-;
-
-o<presentation-position-0> call
+o<ar15-end> call
 m2
-

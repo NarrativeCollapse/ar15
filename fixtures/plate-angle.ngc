@@ -1,0 +1,79 @@
+;
+; plate-angle.ngc - mill the 10 degree bottom edge of a fixture plate.
+;
+; Copyright (C) 2026 narrativecollapse.  Free software under the WTFPL,
+; version 2, with no warranty: see LICENSE.
+;
+; The fixture plates are described in chapter 14 of "Machining the AR15
+; Lower Receiver Forging" by Ray Brandes.
+;
+; Work holding: the plate is in the vise, tilted 10 degrees, with the
+; corner to be cut off at the top.
+;
+; Datums:
+;     X0     off the left end of the cut, X5.000 off the right end
+;     Y0     the centre of the plate's 0.500 thickness; the cutter must be
+;            wide enough to cover all of it, because Y never changes
+;     Z0     the finished level; the top of the corner is at Z0.677
+;
+; The cut goes back and forth along X, stepping down at each end (off the
+; plate), in equal steps no deeper than #<max_step>, then takes a last
+; #<finish> off at Z0.
+;
+
+
+; -- settings ---------------------------------------------------------
+
+#<clear_z> = 1.000
+
+#<tool> = 6             ; 0.750 end mill: anything wider than 0.500 works
+#<tool_dia> = 0.750
+#<rpm> = 2000
+#<feed> = 7
+
+#<left_x> = 0.000
+#<right_x> = 5.000
+#<cut_y> = 0.000
+#<top_z> = 0.677
+#<final_z> = 0.000
+#<max_step> = 0.030
+#<finish> = 0.005
+
+
+; -- program ----------------------------------------------------------
+
+o<ar15-start> call [#<clear_z>]
+o<ar15-tool> call [#<tool>] [#<rpm>] [#<feed>] [#<tool_dia>]
+
+#<steps> = FUP[[#<top_z> - #<final_z> - #<finish>] / #<max_step> - 0.000001]
+#<step> = [[#<top_z> - #<final_z> - #<finish>] / #<steps>]
+
+o<ar15-goto> call [#<left_x>] [#<cut_y>]
+g1 z#<top_z>
+
+; roughing passes, then the finishing pass at the final Z
+#<x> = #<left_x>
+#<n> = 1
+o100 while [#<n> LE [#<steps> + 1]]
+
+    #<z> = [#<top_z> - #<n> * #<step>]
+    o110 if [#<n> GT #<steps>]
+        #<z> = #<final_z>
+    o110 endif
+
+    o120 if [#<x> EQ #<left_x>]
+        #<x> = #<right_x>
+    o120 else
+        #<x> = #<left_x>
+    o120 endif
+
+    g1 z#<z>
+    g1 x#<x>
+
+    #<n> = [#<n> + 1]
+o100 endwhile
+
+g0 z#<clear_z>
+
+o<ar15-end> call
+m2

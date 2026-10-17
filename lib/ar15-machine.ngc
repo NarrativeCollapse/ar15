@@ -1,0 +1,33 @@
+;
+; ar15-machine: the settings that describe your mill.  Edit this file to
+; suit your machine; every program in this repo reads it at startup.
+;
+; Copyright (C) 2026 narrativecollapse.  Free software under the WTFPL,
+; version 2, with no warranty: see LICENSE.
+;
+
+o<ar15-machine> sub
+
+    ; Machine-coordinate (G53) Z that the spindle goes to for every tool
+    ; change and at the end of every program.  0 is the top of travel on
+    ; most LinuxCNC mills.
+    #<_ar15_change_z> = 0.000
+
+    ; Where to park the table at the end of a program, in machine
+    ; coordinates.  0 leaves X and Y where they are; set it to 1 and fill in
+    ; a position that brings the work to you.
+    #<_ar15_park> = 0
+    #<_ar15_park_x> = 0.000
+    #<_ar15_park_y> = 0.000
+
+    ; 1 if you set the spindle speed by hand (belts, step pulleys, a knob):
+    ; every tool change then stops with the spindle off and tells you what
+    ; speed to set.  0 if the S word sets the speed by itself.
+    #<_ar15_manual_rpm> = 1
+
+    ; Tool number of the plunger dial indicator that setup-3-measure.ngc
+    ; uses.  Give it a tool-table entry like any other tool, with the length
+    ; its tip has when the dial reads zero.
+    #<_ar15_indicator_tool> = 99
+
+o<ar15-machine> endsub

@@ -1,0 +1,130 @@
+;
+; setup-3-measure.ngc - AR-15 lower receiver from a forging, before
+; setup 3: measure the driver's side with a dial indicator.
+;
+; Copyright (C) 2026 narrativecollapse.  Free software under the WTFPL,
+; version 2, with no warranty: see LICENSE.
+;
+; The driver's side of a forging is not flat, and how high each feature
+; stands varies from casting to casting.  This program uses the mill as a
+; CMM: it drags a plunger dial indicator across six surfaces and stops
+; at each one so you can read the dial.  Enter the results at the top of
+; setup-3-drivers-side.ngc.
+;
+; Work holding: exactly as in setup-3-drivers-side.ngc.
+;
+; Before running:
+;
+;   1.  Put the dial indicator in the spindle and load it as a tool, with
+;       tool length compensation, by MDI:  T99 M6 G43  (use the number in
+;       lib/ar15-machine.ngc).  Its tool-table length is the length its
+;       tip has when the dial reads zero, measured the same way as every
+;       other tool's length.
+;
+;   2.  X and Y: put the plunger in the small dimple on top of the
+;       magazine release bump and touch off X2.109 Y-0.563 there.  This
+;       makes X0 Y0 the centre of the (not yet drilled) pivot pin hole.
+;       If the indicator's tip is not on the spindle's axis, pick up the
+;       dimple again with a centred tool before running setup 3.
+;
+;   3.  Z: put the plunger on top of the bolt release bump, the highest
+;       point of the forging, lower the spindle until the dial reads
+;       0.500, and touch off Z-0.500 there.  The top of the bolt release
+;       bump is now Z0.
+;
+; The indicator then probes at Z-0.650 (#<probe_z> below): a dial reading
+; R means the surface is at Z = R - 0.650.  The highest surface probed (the
+; top of the magazine release bump) pushes the plunger in about 0.61, so
+; the indicator needs at least 0.75 of travel.  The lowest one (the
+; pistol grip surface) still leaves it pushed in about 0.17, so a slightly
+; low casting cannot run the plunger out of travel and read zero.
+;
+
+
+; -- settings ---------------------------------------------------------
+
+#<clear_z> = 0.100      ; the plunger's lowest point clears the forging
+#<probe_z> = -0.650
+#<probe_feed> = 8
+
+
+; -- program ----------------------------------------------------------
+
+o<ar15-start> call [#<clear_z>]
+
+o10 if [#<_current_tool> NE #<_ar15_indicator_tool>]
+    (ABORT, Load the dial indicator first: T%d#<_ar15_indicator_tool> M6 G43 - see the top of this file)
+o10 endif
+
+g43                     ; ar15-start turned tool length compensation off
+f#<probe_feed>
+
+
+; 1. bolt release bump base surface
+o<ar15-goto> call [3.079] [-0.250]
+g1 z#<probe_z>
+g1 y-0.600
+g1 y-0.250
+g1 y-0.600
+g1 y-0.250
+(DEBUG, 1 of 6: bolt release bump base.  Z = dial reading %.3f#<probe_z>.  Enter it as z_bolt_release_base, then press Resume)
+m0
+g0 z#<clear_z>
+
+
+; 2. top of the magazine release bump, in a circle around the dimple
+o<ar15-goto> call [2.000] [-0.563]
+g1 z#<probe_z>
+g2 x2.000 y-0.563 i0.109 j0
+(DEBUG, 2 of 6: top of the mag release bump.  Z = dial reading %.3f#<probe_z>.  Enter it as z_mag_release_top, then press Resume)
+m0
+g0 z#<clear_z>
+
+
+; 3. magazine release bump base surface
+o<ar15-goto> call [2.100] [-1.100]
+g1 z#<probe_z>
+g1 y-1.600
+g1 y-1.100
+g1 y-1.600
+(DEBUG, 3 of 6: mag release bump base.  Z = dial reading %.3f#<probe_z>.  Enter it as z_mag_release_base, then press Resume)
+m0
+g0 z#<clear_z>
+
+
+; 4. safety bump base surface: the main side of the receiver
+o<ar15-goto> call [3.750] [-0.600]
+g1 z#<probe_z>
+g1 x6.250
+g1 x3.750
+(DEBUG, 4 of 6: safety bump base.  Z = dial reading %.3f#<probe_z>.  Enter it as z_safety_base, then press Resume)
+m0
+g0 z#<clear_z>
+
+
+; 5. top of the pistol grip mount surface
+o<ar15-goto> call [5.500] [-1.350]
+g1 z#<probe_z>
+g1 x6.250
+g1 x5.500 y-1.800
+g1 y-1.350
+(DEBUG, 5 of 6: pistol grip mount surface.  Z = dial reading %.3f#<probe_z>.  Enter it as z_pistol_grip, then press Resume)
+m0
+g0 z#<clear_z>
+
+
+; 6. rear trigger guard surface, around the rear trigger guard hole
+o<ar15-goto> call [4.875] [-2.180]
+g1 z#<probe_z>
+g1 x5.000
+g1 x4.800
+g1 x4.875
+(DEBUG, 6 of 6: rear trigger guard surface.  Z = dial reading %.3f#<probe_z>.  Enter it as z_rear_trigger_guard)
+m0
+g0 z#<clear_z>
+
+
+; Leave X and Y alone so the last reading can be checked again: only
+; lift the indicator clear.
+g53 g0 z#<_ar15_change_z>
+m2

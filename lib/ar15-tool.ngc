@@ -1,0 +1,40 @@
+;
+; ar15-tool: change tools without crashing.
+;
+;     o<ar15-tool> call [tool number] [rpm] [feed] [diameter]
+;
+; The spindle stops and goes to the top of travel before the change, and
+; stays there: the new tool only comes down, to the clear Z, at the next
+; ar15-goto.
+;
+; If the diameter is not 0 and the tool table has a diameter for this
+; tool, the two must agree, so a wrong tool or a wrong table entry stops
+; the program before it cuts anything.
+;
+; Copyright (C) 2026 narrativecollapse.  Free software under the WTFPL,
+; version 2, with no warranty: see LICENSE.
+;
+
+o<ar15-tool> sub
+
+    m5
+    g53 g0 z#<_ar15_change_z>
+    m6 t#1 g43
+
+    o<ar15-tool-10> if [[#4 GT 0] AND [#5410 GT 0]]
+        o<ar15-tool-20> if [ABS[#5410 - #4] GT 0.002]
+            (ABORT, ar15-tool: the tool table says tool %d#1 is %.4f#5410 in diameter, but this program expects %.4f#4)
+        o<ar15-tool-20> endif
+    o<ar15-tool-10> endif
+
+    s#2
+    f#3
+
+    o<ar15-tool-30> if [#<_ar15_manual_rpm>]
+        (DEBUG, Set the spindle to %d#2 rpm for tool %d#1, then press Resume)
+        m0
+    o<ar15-tool-30> endif
+
+    m3
+
+o<ar15-tool> endsub
